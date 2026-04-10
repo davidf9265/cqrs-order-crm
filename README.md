@@ -23,48 +23,49 @@ La arquitectura separa estrictamente el sistema en dos líneas de procesamiento 
 graph TD
     Client[Cliente / Frontend]
     
-    subgraph "API REST (NestJS)"
+    subgraph API_REST ["API REST (NestJS)"]
         Controller[Orders Controller]
         
-        subgraph "Command Stack (Write)"
-            Commands[Create / Update Commands]
-            CmdHandlers[Command Handlers]
-            Domain[Domain Aggregate (Order)]
-            WriteRepo[Write DB Adapter / TypeORM]
+        subgraph Command_Stack ["Command Stack (Write)"]
+            Commands["Create / Update Commands"]
+            CmdHandlers["Command Handlers"]
+            Domain["Domain Aggregate (Order)"]
+            WriteRepo["Write DB Adapter / TypeORM"]
         end
         
-        subgraph "Query Stack (Read)"
-            Queries[Get / List Queries]
-            QryHandlers[Query Handlers]
-            ReadRepo[Read DB Adapter / Mongoose]
+        subgraph Query_Stack ["Query Stack (Read)"]
+            Queries["Get / List Queries"]
+            QryHandlers["Query Handlers"]
+            ReadRepo["Read DB Adapter / Mongoose"]
         end
         
-        subgraph "Event Bus / Sync"
-            EventBus[Internal Event Bus]
-            EventHandlers[Event Handlers (Projectors)]
+        subgraph Event_Bus_Stack ["Event Bus / Sync"]
+            EventBus["Internal Event Bus"]
+            EventHandlers["Event Handlers (Projectors)"]
         end
     end
-    
-    subgraph "Infrastructure"
+
+    subgraph Infrastructure ["Infrastructure"]
         DB_Write[(Escritura: SQLite/SQL)]
         DB_Read[(Lectura: MongoDB)]
     end
 
+    %% Relaciones
     Client -->|POST, PATCH| Controller
     Client -->|GET| Controller
     
-    Controller -->|Dispatch Command| Commands
+    Controller -->|Dispatch| Commands
     Commands --> CmdHandlers
     CmdHandlers --> Domain
     Domain -->|Save State| WriteRepo
     WriteRepo -->|ACID Tx| DB_Write
     
-    Domain -->|Emit Domain Event| EventBus
+    Domain -->|Emit| EventBus
     EventBus --> EventHandlers
     EventHandlers -->|Update Projection| ReadRepo
-    ReadRepo -->|Upsert Document| DB_Read
+    ReadRepo -->|Upsert| DB_Read
     
-    Controller -->|Dispatch Query| Queries
+    Controller -->|Dispatch| Queries
     Queries --> QryHandlers
     QryHandlers --> ReadRepo
     ReadRepo -->|Fast Fetch| DB_Read
